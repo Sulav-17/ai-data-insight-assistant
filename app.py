@@ -29,6 +29,11 @@ from src.question_parser import (
     parse_question,
 )
 
+from src.analyzer import (
+    AnalysisExecutionError,
+    execute_analysis_plan,
+)
+
 APP_TITLE = "AI Data Insight Assistant"
 
 
@@ -265,9 +270,86 @@ else:
                 )
 
                 st.info(
-                    "This is a plan preview only. "
-                    "No calculation has been executed."
+                    "The plan has been validated. "
+                    "Run it to calculate a deterministic result "
+                    "from the complete uploaded dataset."
                 )
+
+                run_analysis = st.button(
+                    "Run safe analysis",
+                    type="primary",
+                )
+
+                if run_analysis:
+                    try:
+                        analysis_result = execute_analysis_plan(
+                            analysis_plan,
+                            dataframe,
+                        )
+
+                    except AnalysisExecutionError as error:
+                        st.error(str(error))
+
+                    else:
+                        st.subheader("Analysis result")
+
+                        if analysis_result.result_type == "scalar":
+                            scalar_value = (
+                                analysis_result.scalar_value
+                            )
+
+                            if isinstance(scalar_value, float):
+                                display_value = (
+                                    f"{scalar_value:,.2f}"
+                                )
+                            else:
+                                display_value = (
+                                    f"{scalar_value:,}"
+                                )
+
+                            st.metric(
+                                label=analysis_result.title,
+                                value=display_value,
+                            )
+
+                        elif analysis_result.result_type == "table":
+                            result_table = analysis_result.table
+
+                            st.write(
+                                f"**{analysis_result.title}**"
+                            )
+
+                            if (
+                                result_table is None
+                                or result_table.empty
+                            ):
+                                st.info(
+                                    "The analysis completed, but no "
+                                    "matching records were found."
+                                )
+
+                            else:
+                                st.dataframe(
+                                    result_table,
+                                    hide_index=True,
+                                    use_container_width=True,
+                                )
+
+                        else:
+                            st.error(
+                                "The analysis returned an "
+                                "unsupported result type."
+                            )
+
+                        st.success(
+                            "The result was calculated using "
+                            "approved Pandas operations."
+                        )
+
+                        st.caption(
+                            "The complete uploaded dataset was used. "
+                            "No LLM-generated code was executed."
+                        )
 
         suggested_questions = (
             suggest_analysis_questions(
