@@ -34,6 +34,19 @@ from src.analyzer import (
     execute_analysis_plan,
 )
 
+from src.charts import (
+    ChartBuildError,
+    build_result_chart,
+)
+from src.insight_generator import (
+    InsightGenerationError,
+    generate_business_insight,
+)
+from src.report_generator import (
+    ReportGenerationError,
+    generate_markdown_report,
+)
+
 APP_TITLE = "AI Data Insight Assistant"
 
 
@@ -324,8 +337,8 @@ else:
                                 or result_table.empty
                             ):
                                 st.info(
-                                    "The analysis completed, but no "
-                                    "matching records were found."
+                                    "The analysis completed, but "
+                                    "no matching records were found."
                                 )
 
                             else:
@@ -340,6 +353,85 @@ else:
                                 "The analysis returned an "
                                 "unsupported result type."
                             )
+                            st.stop()
+
+                        try:
+                            result_chart = build_result_chart(
+                                analysis_result
+                            )
+
+                        except ChartBuildError as error:
+                            st.warning(
+                                f"A chart could not be created: "
+                                f"{error}"
+                            )
+
+                        else:
+                            if result_chart is not None:
+                                st.subheader(
+                                    "Result visualization"
+                                )
+
+                                st.plotly_chart(
+                                    result_chart,
+                                    use_container_width=True,
+                                )
+
+                        try:
+                            business_insight = (
+                                generate_business_insight(
+                                    analysis_result
+                                )
+                            )
+
+                        except InsightGenerationError as error:
+                            st.warning(
+                                f"An insight could not be "
+                                f"generated: {error}"
+                            )
+
+                        else:
+                            st.subheader(
+                                "Plain-English insight"
+                            )
+
+                            st.write(business_insight)
+
+                            st.caption(
+                                "This explanation was generated "
+                                "from deterministic rules and "
+                                "verified analysis results."
+                            )
+
+                            try:
+                                markdown_report = (
+                                    generate_markdown_report(
+                                        question=user_question,
+                                        analysis_plan=analysis_plan,
+                                        analysis_result=analysis_result,
+                                        business_insight=(
+                                            business_insight
+                                        ),
+                                    )
+                                )
+
+                            except ReportGenerationError as error:
+                                st.warning(
+                                    f"The report could not be "
+                                    f"generated: {error}"
+                                )
+
+                            else:
+                                st.download_button(
+                                    label=(
+                                        "Download analysis report"
+                                    ),
+                                    data=markdown_report,
+                                    file_name=(
+                                        "data_insight_report.md"
+                                    ),
+                                    mime="text/markdown",
+                                )
 
                         st.success(
                             "The result was calculated using "
@@ -347,8 +439,9 @@ else:
                         )
 
                         st.caption(
-                            "The complete uploaded dataset was used. "
-                            "No LLM-generated code was executed."
+                            "The chart and written insight are "
+                            "based on the verified result. No "
+                            "LLM-generated code was executed."
                         )
 
         suggested_questions = (
