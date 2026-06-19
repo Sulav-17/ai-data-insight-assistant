@@ -1,6 +1,12 @@
 import streamlit as st
 
 from src.data_loader import load_csv
+from src.profiler import (
+    build_categorical_summary,
+    build_missing_value_summary,
+    build_numeric_summary,
+    count_duplicate_rows,
+)
 from src.schema import (
     build_schema_summary,
     get_dataset_dimensions,
@@ -21,8 +27,8 @@ st.set_page_config(
 st.title("📊 AI Data Insight Assistant")
 
 st.write(
-    "Upload a CSV dataset to inspect its structure through "
-    "a safe and explainable data workflow."
+    "Upload a CSV dataset to inspect its structure and "
+    "automatically profile its contents."
 )
 
 uploaded_file = st.file_uploader(
@@ -48,10 +54,13 @@ else:
 
     else:
         st.success(
-            f"'{uploaded_file.name}' passed validation and loaded successfully."
+            f"'{uploaded_file.name}' passed validation "
+            "and loaded successfully."
         )
 
-        row_count, column_count = get_dataset_dimensions(dataframe)
+        row_count, column_count = get_dataset_dimensions(
+            dataframe
+        )
 
         st.subheader("Dataset overview")
 
@@ -78,12 +87,13 @@ else:
 
         st.dataframe(
             preview,
+            hide_index=True,
             use_container_width=True,
         )
 
         st.caption(
             "The preview displays only the first five rows. "
-            "The complete dataset remains loaded in memory."
+            "Profiling uses the complete dataset."
         )
 
         st.subheader("Schema summary")
@@ -96,12 +106,111 @@ else:
             use_container_width=True,
         )
 
-        st.info(
-            "Data types are inferred by Pandas from the CSV content. "
-            "Controlled type conversion will be handled in a later milestone."
+        st.subheader("Data quality overview")
+
+        missing_summary = build_missing_value_summary(
+            dataframe
+        )
+
+        duplicate_row_count = count_duplicate_rows(
+            dataframe
+        )
+
+        total_missing_values = int(
+            missing_summary["missing_count"].sum()
+        )
+
+        columns_with_missing_values = int(
+            (
+                missing_summary["missing_count"] > 0
+            ).sum()
+        )
+
+        missing_metric, affected_metric, duplicate_metric = (
+            st.columns(3)
+        )
+
+        with missing_metric:
+            st.metric(
+                label="Missing cells",
+                value=f"{total_missing_values:,}",
+            )
+
+        with affected_metric:
+            st.metric(
+                label="Columns with missing values",
+                value=f"{columns_with_missing_values:,}",
+            )
+
+        with duplicate_metric:
+            st.metric(
+                label="Duplicate rows",
+                value=f"{duplicate_row_count:,}",
+            )
+
+        st.subheader("Missing-value summary")
+
+        st.dataframe(
+            missing_summary,
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "missing_percentage": st.column_config.NumberColumn(
+                    "Missing percentage",
+                    format="%.2f%%",
+                ),
+            },
+        )
+
+        st.subheader("Numeric summary")
+
+        numeric_summary = build_numeric_summary(dataframe)
+
+        if numeric_summary.empty:
+            st.info(
+                "No numeric columns were detected in this dataset."
+            )
+
+        else:
+            st.dataframe(
+                numeric_summary.round(2),
+                hide_index=True,
+                use_container_width=True,
+            )
+
+            st.caption(
+                "Numeric statistics are calculated from the "
+                "complete dataset. Missing numeric values are "
+                "excluded by Pandas."
+            )
+
+        st.subheader("Categorical summary")
+
+        categorical_summary = build_categorical_summary(
+            dataframe
+        )
+
+        if categorical_summary.empty:
+            st.info(
+                "No categorical columns were detected "
+                "in this dataset."
+            )
+
+        else:
+            st.dataframe(
+                categorical_summary,
+                hide_index=True,
+                use_container_width=True,
+            )
+
+        st.warning(
+            "This milestone profiles the data but does not "
+            "clean or modify it. Missing values and duplicate "
+            "rows remain in the dataset."
         )
 
         st.caption(
-            "Missing-value analysis, duplicate detection, statistics, "
-            "charts, and AI questions have not been added yet."
+            "Charts, suggested questions, natural-language "
+            "analysis, and AI-generated insights will be "
+            "added in later milestones."
         )
