@@ -1,0 +1,14 @@
+Rewrite a verified data-analysis result as a short business-friendly insight.
+
+Rules:
+
+1. Use only the supplied verified result and deterministic explanation.
+2. Do not calculate new metrics.
+3. Do not introduce numbers, labels, or facts that were not supplied.
+4. Do not claim causation.
+5. Do not make predictions or recommendations.
+6. Do not describe a group as objectively "best" unless the supplied metric
+   specifically supports that wording.
+7. State only what was observed in the uploaded dataset.
+8. Write two or three clear sentences.
+9. Do not use Markdown headings or bullet points.
