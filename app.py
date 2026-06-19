@@ -18,6 +18,16 @@ from src.question_suggester import (
     suggest_analysis_questions,
 )
 
+from dataclasses import asdict
+
+from src.analysis_planner import (
+    AnalysisPlanError,
+    build_analysis_plan,
+)
+from src.question_parser import (
+    QuestionParseError,
+    parse_question,
+)
 
 APP_TITLE = "AI Data Insight Assistant"
 
@@ -208,6 +218,56 @@ else:
             )
 
         st.subheader("Suggested analysis questions")
+        
+        user_question = st.text_input(
+            "Enter your analysis question",
+            placeholder="What is the average revenue?",
+            help=(
+                "Use one of the suggested question formats. "
+                "The analysis will not be executed yet."
+            ),
+        )
+
+        if user_question:
+            try:
+                parsed_question = parse_question(
+                    user_question,
+                    dataframe,
+                )
+
+                analysis_plan = build_analysis_plan(
+                    parsed_question,
+                    dataframe,
+                )
+
+            except (
+                QuestionParseError,
+                AnalysisPlanError,
+            ) as error:
+                st.error(str(error))
+
+            else:
+                st.success(
+                    "The question was converted into "
+                    "a safe analysis plan."
+                )
+
+                st.write("**Plan description**")
+
+                st.write(
+                    analysis_plan.description
+                )
+
+                st.write("**Structured plan**")
+
+                st.json(
+                    asdict(analysis_plan)
+                )
+
+                st.info(
+                    "This is a plan preview only. "
+                    "No calculation has been executed."
+                )
 
         suggested_questions = (
             suggest_analysis_questions(
@@ -215,6 +275,8 @@ else:
                 max_questions=6,
             )
         )
+
+
 
         st.write(
             "These questions were generated from the "
