@@ -14,6 +14,10 @@ from src.schema import (
 )
 from src.validator import CSVValidationError, validate_csv_metadata
 
+from src.question_suggester import (
+    suggest_analysis_questions,
+)
+
 
 APP_TITLE = "AI Data Insight Assistant"
 
@@ -202,6 +206,34 @@ else:
                 hide_index=True,
                 use_container_width=True,
             )
+
+        st.subheader("Suggested analysis questions")
+
+        suggested_questions = (
+            suggest_analysis_questions(
+                dataframe,
+                max_questions=6,
+            )
+        )
+
+        st.write(
+            "These questions were generated from the "
+            "dataset schema using deterministic rules."
+        )
+
+        for position, question in enumerate(
+            suggested_questions,
+            start=1,
+        ):
+            st.markdown(
+                f"**{position}.** {question}"
+            )
+
+        st.caption(
+            "The application cannot answer these questions "
+            "yet. Natural-language interpretation and safe "
+            "analysis execution will be added next."
+        )
 
         st.warning(
             "This milestone profiles the data but does not "
